@@ -1,1 +1,103 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rocky AI</title>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;background:#10131c;color:#f5f6fa;
+  font-family:Arial,sans-serif;min-height:100vh;
+  display:flex;justify-content:center
+}
+.app{width:100%;max-width:760px;padding:22px;display:flex;flex-direction:column;min-height:100vh}
+header{display:flex;align-items:center;gap:12px;padding:12px 0}
+.logo{background:#7567f8;border-radius:14px;padding:12px;font-weight:bold;font-size:22px}
+h1{font-size:22px;margin:0}
+.status{color:#9ba3b7;font-size:12px;margin-top:5px}
+main{flex:1;padding:35px 0}
+.welcome{text-align:center;margin:35px 0}
+.welcome h2{font-size:30px;margin-bottom:10px}
+.welcome p{color:#aab1c2}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:25px 0}
+.card{background:#1b2030;border:1px solid #30374a;border-radius:13px;padding:17px;color:white;text-align:left;cursor:pointer}
+.card:hover{border-color:#7567f8}
+.card strong{display:block;margin-bottom:7px}
+.card span{color:#aab1c2;font-size:13px}
+#chat{display:flex;flex-direction:column;gap:12px}
+.message{padding:13px 16px;border-radius:15px;max-width:88%;line-height:1.5;white-space:pre-wrap}
+.user{background:#6659df;align-self:flex-end}
+.bot{background:#202638;align-self:flex-start}
+form{display:flex;gap:10px;background:#1b2030;border:1px solid #343b50;border-radius:16px;padding:9px}
+input{flex:1;min-width:0;background:transparent;border:0;outline:0;color:white;font-size:16px;padding:8px}
+button{border:0;background:#7567f8;color:white;border-radius:11px;padding:12px 17px;font-weight:bold;cursor:pointer}
+footer{text-align:center;color:#788197;font-size:11px;padding:16px}
+@media(max-width:420px){.welcome h2{font-size:25px}.cards{gap:8px}.card{padding:12px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="logo">R</div>
+  <div>
+    <h1>Rocky AI</h1>
+    <div class="status">Your ideas. Your assistant. Your future.</div>
+  </div>
+</header>
+
+<main>
+  <section class="welcome" id="welcome">
+    <h2>Hello! I'm Rocky.</h2>
+    <p>Your AI assistant for ideas, learning and getting things done.</p>
+  </section>
+
+  <div class="cards" id="cards">
+    <button class="card" onclick="suggest('Help me plan my day')"><strong>📅 Plan my day</strong><span>Organise tasks and goals</span></button>
+    <button class="card" onclick="suggest('Help me explore a business idea')"><strong>💡 Explore ideas</strong><span>Discover new possibilities</span></button>
+    <button class="card" onclick="suggest('Teach me something interesting')"><strong>📚 Learn something</strong><span>Understand new topics</span></button>
+    <button class="card" onclick="suggest('Help me write something')"><strong>✍️ Write something</strong><span>Make writing easier</span></button>
+  </div>
+
+  <div id="chat"></div>
+</main>
+
+<form id="form">
+  <input id="prompt" placeholder="Ask Rocky anything..." autocomplete="off">
+  <button type="submit">Send</button>
+</form>
+<footer>Rocky AI · Phase 1 Prototype</footer>
+</div>
+
+<script>
+const chat=document.getElementById("chat");
+const input=document.getElementById("prompt");
+
+function addMessage(text,type){
+  const div=document.createElement("div");
+  div.className="message "+type;
+  div.textContent=text;
+  chat.appendChild(div);
+  window.scrollTo(0,document.body.scrollHeight);
+}
+
+function suggest(text){
+  input.value=text;
+  document.getElementById("form").requestSubmit();
+}
+
+document.getElementById("form").addEventListener("submit",function(e){
+  e.preventDefault();
+  const text=input.value.trim();
+  if(!text)return;
+  document.getElementById("welcome").style.display="none";
+  document.getElementById("cards").style.display="none";
+  addMessage(text,"user");
+  input.value="";
+  addMessage("Welcome to Rocky AI! This is our first prototype. The chat interface is working, and the next development step is connecting a real AI model so I can answer your questions intelligently.","bot");
+});
+</script>
+</body>
+</html>
+
