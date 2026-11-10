@@ -38,9 +38,17 @@ export default {
 
     const url = new URL(request.url);
 
-    if (url.pathname !== "/api/chat") {
-      return json({ error: "Not found" }, 404, corsOrigin);
-    }
+if (url.pathname === "/api/health") {
+  return json({
+    worker: "online",
+    aiBinding: Boolean(env.AI),
+    chatEnabled: env.ENABLE_CHAT === "true"
+  }, 200, corsOrigin);
+}
+
+if (url.pathname !== "/api/chat") {
+  return json({ error: "Not found" }, 404, corsOrigin);
+}
 
     if (origin !== ALLOWED_ORIGIN) {
       return json({ error: "Origin not allowed" }, 403, corsOrigin);
