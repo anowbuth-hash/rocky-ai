@@ -80,6 +80,7 @@ function addMessage(text,type){
   div.textContent=text;
   chat.appendChild(div);
   window.scrollTo(0,document.body.scrollHeight);
+  return div;
 }
 
 function suggest(text){
@@ -87,15 +88,37 @@ function suggest(text){
   document.getElementById("form").requestSubmit();
 }
 
-document.getElementById("form").addEventListener("submit",function(e){
+document.getElementById("form").addEventListener("submit", async function(e) {
   e.preventDefault();
-  const text=input.value.trim();
-  if(!text)return;
-  document.getElementById("welcome").style.display="none";
-  document.getElementById("cards").style.display="none";
-  addMessage(text,"user");
-  input.value="";
-  addMessage("Rocky AI's backend is being prepared. Real AI responses are not enabled yet.","bot");
+
+  const text = input.value.trim();
+  if (!text) return;
+
+  document.getElementById("welcome").style.display = "none";
+  document.getElementById("cards").style.display = "none";
+
+  addMessage(text, "user");
+  input.value = "";
+
+  const loading = addMessage("Connecting to Rocky's backend...", "bot");
+
+  try {
+    const response = await fetch(
+      "https://rocky-ai-api.anowbuth.workers.dev/api/chat",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [{ role: "user", content: text }]
+        })
+      }
+    );
+
+    const data = await response.json();
+    loading.textContent = data.error || "Rocky's AI service is not enabled yet.";
+  } catch (error) {
+    loading.textContent = "Unable to reach Rocky's backend. Please try again.";
+  }
 });
 </script>
 </body>
