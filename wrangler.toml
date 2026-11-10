@@ -1,0 +1,5 @@
+name = "rocky-ai-api"
+main = "worker.js"
+compatibility_date = "2026-11-10"
+
+# Never put API keys or other secrets in this file.
