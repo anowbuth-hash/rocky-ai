@@ -115,7 +115,7 @@ document.getElementById("form").addEventListener("submit", async function(e) {
     );
 
     const data = await response.json();
-    loading.textContent = data.error || "Rocky's AI service is not enabled yet.";
+    loading.textContent = data.reply || data.error || "Rocky did not return a response.";
   } catch (error) {
     loading.textContent = "Unable to reach Rocky's backend. Please try again.";
   }
