@@ -201,8 +201,17 @@ input:disabled {
 
 button:focus-visible,
 input:focus-visible {
-  outline: 2px solid #aaa1ff;
+  outline: 3px solid #aaa1ff;
   outline-offset: 3px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+button:focus:not(:focus-visible),
+input:focus:not(:focus-visible) {
+  outline: none;
 }
 
 footer {
@@ -217,16 +226,21 @@ footer {
     padding: 14px;
   }
 
+  header {
+    flex-wrap: wrap;
+  }
+
   .welcome h2 {
     font-size: 25px;
   }
 
   .cards {
-    gap: 8px;
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
 
   .card {
-    padding: 12px;
+    padding: 14px;
   }
 
   .header-actions button {
@@ -242,6 +256,18 @@ footer {
     padding: 11px;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+  
 </style>
 </head>
 
