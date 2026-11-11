@@ -335,6 +335,7 @@ const cards = document.getElementById("cards");
 let chatEnabled = false;
 let conversation = [];
 let requestInProgress = false;
+let failedMessage = null;
 
 function setChatEnabled(enabled) {
   chatEnabled = enabled;
@@ -374,6 +375,24 @@ function addMessage(text, type, loading = false) {
   return div;
 }
 
+function showRetry(messageElement, text, message) {
+  failedMessage = text;
+  messageElement.textContent = message;
+
+  const retryButton = document.createElement("button");
+  retryButton.type = "button";
+  retryButton.textContent = "Retry";
+
+  retryButton.addEventListener("click", () => {
+    if (requestInProgress || !failedMessage) return;
+
+    input.value = failedMessage;
+    document.getElementById("form").requestSubmit();
+  });
+
+  messageElement.appendChild(retryButton);
+}
+
 function suggest(text) {
   if (!chatEnabled || requestInProgress) return;
 
@@ -385,6 +404,7 @@ function newChat() {
   if (requestInProgress) return;
 
   conversation = [];
+  failedMessage = null;
   chat.replaceChildren();
 
   welcome.style.display = "";
@@ -441,15 +461,25 @@ document.getElementById("form").addEventListener("submit", async function(e) {
 
   if (!text) return;
 
+  if (failedMessage && text !== failedMessage) {
+  addMessage(
+    "Please retry your previous message before sending a new one.",
+    "bot"
+  );
+  return;
+}
+
   welcome.style.display = "none";
   cards.style.display = "none";
 
+if (failedMessage !== text) {
   conversation.push({
     role: "user",
     content: text
   });
 
   addMessage(text, "user");
+}
 
   input.value = "";
   requestInProgress = true;
@@ -474,37 +504,41 @@ document.getElementById("form").addEventListener("submit", async function(e) {
 
     const data = await response.json();
 
-    if (!response.ok) {
-      conversation.pop();
 
-      loading.textContent =
-        data.error || "Rocky is temporarily unavailable.";
+if (!response.ok) {
+  showRetry(
+    loading,
+    text,
+    data.error || "Rocky couldn't respond."
+  );
+  return;
+}
 
-      return;
-    }
+if (typeof data.reply !== "string" || !data.reply.trim()) {
+  showRetry(
+    loading,
+    text,
+    "Rocky returned an empty response."
+  );
+  return;
+}
 
-    if (typeof data.reply !== "string" || !data.reply.trim()) {
-      conversation.pop();
+loading.classList.remove("loading");
+loading.textContent = data.reply;
 
-      loading.textContent =
-        "Rocky returned an empty response. Please try again.";
+conversation.push({
+  role: "assistant",
+  content: data.reply
+});
 
-      return;
-    }
+failedMessage = null;
 
-    loading.classList.remove("loading");
-    loading.textContent = data.reply;
-
-    conversation.push({
-      role: "assistant",
-      content: data.reply
-    });
-
-  } catch {
-    conversation.pop();
-
-    loading.textContent =
-      "Unable to reach Rocky's backend. Please try again.";
+} catch {
+  showRetry(
+    loading,
+    text,
+    "Unable to reach Rocky. Please check your connection."
+  );
 
   } finally {
     requestInProgress = false;
