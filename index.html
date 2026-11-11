@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#10131c">
-<meta name="description" content="Rocky AI — Your assistant for ideas, learning and getting things done.">
+<meta name="description" content="Rocky AI — Your AI assistant for learning, creativity, problem-solving and everyday tasks.">
 <title>Rocky AI</title>
 
 <style>
@@ -293,8 +293,8 @@ footer {
 
 <main>
   <section class="welcome" id="welcome">
-    <h2>Hello! I'm Rocky.</h2>
-    <p>Your AI assistant for ideas, learning and getting things done.</p>
+    <h2>Welcome to Rocky AI</h2>
+    <p>Your AI assistant for learning, creativity, problem-solving and everyday tasks.</p>
   </section>
 
   <div
@@ -343,7 +343,7 @@ footer {
   <button id="send" type="submit" disabled>Send</button>
 </form>
 
-<footer>Rocky AI · Phase 2 · Preview Testing</footer>
+<footer>Rocky AI · Your AI assistant</footer>
 
 </div>
 
@@ -375,12 +375,12 @@ function setChatEnabled(enabled) {
 
   if (enabled) {
     status.textContent = "Online";
-    availability.textContent = "Rocky AI is available. You can start chatting.";
+    availability.textContent = "Rocky AI is ready. Start a conversation.";
     input.placeholder = "Ask Rocky anything...";
   } else {
-    status.textContent = "Preview · Testing";
+    status.textContent = "Currently unavailable";
     availability.textContent =
-      "Rocky AI is currently in testing. Chat will become available after testing is complete.";
+      "Rocky AI is temporarily unavailable. Please try again later.";
     input.placeholder = "Chat is currently unavailable";
   }
 }
@@ -445,7 +445,7 @@ function newChat() {
 
   input.value = "";
 
-  addMessage("New conversation ready. Chat is currently in testing mode.", "bot");
+addMessage("New conversation ready. How can I help you?", "bot");
 
   if (chatEnabled) {
     input.focus();
