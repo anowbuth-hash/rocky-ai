@@ -408,6 +408,7 @@ function showRetry(messageElement, text, message) {
   const retryButton = document.createElement("button");
   retryButton.type = "button";
   retryButton.textContent = "Retry";
+  retryButton.className = "retry-button";
 
   retryButton.addEventListener("click", () => {
     if (requestInProgress || !failedMessage) return;
@@ -535,7 +536,13 @@ if (failedMessage !== text) {
       })
     });
 
-    const data = await response.json();
+    let data = {};
+
+    try {
+      data = await response.json();
+    } catch {
+      throw new Error("Invalid server response");
+    }
 
 
 if (!response.ok) {
@@ -558,6 +565,11 @@ if (typeof data.reply !== "string" || !data.reply.trim()) {
 
 loading.classList.remove("loading");
 loading.textContent = data.reply;
+
+// Remove retry buttons from previous failed attempts.
+chat.querySelectorAll(".retry-button").forEach(button => {
+  button.remove();
+});
 
 conversation.push({
   role: "assistant",
