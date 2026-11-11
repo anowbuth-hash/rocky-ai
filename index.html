@@ -403,6 +403,12 @@ function addMessage(text, type, loading = false) {
 
 function showRetry(messageElement, text, message) {
   failedMessage = text;
+
+  // Remove older retry messages.
+  chat.querySelectorAll(".retry-button").forEach(button => {
+    button.remove();
+  });
+
   messageElement.textContent = message;
 
   const retryButton = document.createElement("button");
@@ -413,7 +419,6 @@ function showRetry(messageElement, text, message) {
   retryButton.addEventListener("click", () => {
     if (requestInProgress || !failedMessage) return;
 
-    retryButton.disabled = true;
     input.value = failedMessage;
     document.getElementById("form").requestSubmit();
   });
