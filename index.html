@@ -307,27 +307,49 @@ footer {
   </div>
 
   <div class="cards" id="cards">
-    <button class="card" type="button" onclick="suggest('Help me plan my day')" disabled>
+    <button class="card" type="button" onclick="openExplore()">
+      <strong>📍 Explore Nearby</strong>
+      <span>Discover places within 5 km of you</span>
+    </button>
+    
+    <button class="card chat-card" type="button" onclick="suggest('Help me plan my day')" disabled>
       <strong>📅 Plan my day</strong>
       <span>Organise tasks and goals</span>
     </button>
 
-    <button class="card" type="button" onclick="suggest('Help me explore a business idea')" disabled>
+    <button class="card chat-card" type="button" onclick="suggest('Help me explore a business idea')" disabled>
       <strong>💡 Explore ideas</strong>
       <span>Discover new possibilities</span>
     </button>
 
-    <button class="card" type="button" onclick="suggest('Teach me something interesting')" disabled>
+    <button class="card chat-card" type="button" onclick="suggest('Teach me something interesting')" disabled>
       <strong>📚 Learn something</strong>
       <span>Understand new topics</span>
     </button>
 
-    <button class="card" type="button" onclick="suggest('Help me write something')" disabled>
+    <button class="card chat-card" type="button" onclick="suggest('Help me write something')" disabled>
       <strong>✍️ Write something</strong>
       <span>Make writing easier</span>
     </button>
   </div>
 
+  <section id="explore" style="display:none;">
+  <h2>Explore Nearby</h2>
+  <p>Select places you want to discover within 5 km.</p>
+
+  <div id="exploreCategories" class="cards"></div>
+
+  <button type="button" onclick="getNearbyPlaces()">
+    Find places near me
+  </button>
+
+  <button type="button" onclick="closeExplore()">
+    Back to Rocky AI
+  </button>
+
+  <div id="exploreResults"></div>
+</section>
+  
   <div id="chat" aria-live="polite"></div>
 </main>
 
@@ -350,6 +372,91 @@ footer {
 <script>
 const API_BASE = "https://rocky-ai-api.anowbuth.workers.dev";
 
+const explore = document.getElementById("explore");
+const exploreResults = document.getElementById("exploreResults");
+
+const nearbyCategories = [
+  "Restaurants",
+  "Banks",
+  "Supermarkets",
+  "Shopping malls",
+  "Hospitals",
+  "Pharmacies",
+  "Petrol stations",
+  "ATMs",
+  "Hotels",
+  "Cafés",
+  "Parks"
+];
+
+let selectedCategories = [];
+
+function openExplore() {
+  welcome.style.display = "none";
+  cards.style.display = "none";
+  explore.style.display = "block";
+
+  const container = document.getElementById("exploreCategories");
+  container.replaceChildren();
+
+  nearbyCategories.forEach(category => {
+    const label = document.createElement("label");
+    label.className = "card";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.value = category;
+    checkbox.style.marginRight = "10px";
+
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) {
+        selectedCategories.push(category);
+      } else {
+        selectedCategories = selectedCategories.filter(item => item !== category);
+      }
+    });
+
+    label.append(checkbox, document.createTextNode(category));
+    container.appendChild(label);
+  });
+}
+
+function closeExplore() {
+  explore.style.display = "none";
+  welcome.style.display = "";
+  cards.style.display = "";
+}  
+
+async function getNearbyPlaces() {
+  if (selectedCategories.length === 0) {
+    alert("Please select at least one category.");
+    return;
+  }
+
+  if (!navigator.geolocation) {
+    alert("Location is not supported by this browser.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    position => {
+      const latitude = position.coords.latitude;
+      const longitude = position.coords.longitude;
+
+      exploreResults.textContent =
+        `Location received. Latitude: ${latitude.toFixed(4)}, Longitude: ${longitude.toFixed(4)}.`;
+    },
+    () => {
+      alert("Please allow location access to explore nearby places.");
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 60000
+    }
+  );
+}
+  
 const chat = document.getElementById("chat");
 const input = document.getElementById("prompt");
 const send = document.getElementById("send");
@@ -369,7 +476,7 @@ function setChatEnabled(enabled) {
   input.disabled = !enabled;
   send.disabled = !enabled;
 
-  document.querySelectorAll(".card").forEach(card => {
+  document.querySelectorAll(".chat-card").forEach(card => {
     card.disabled = !enabled;
   });
 
