@@ -267,8 +267,20 @@ footer {
     transition-duration: 0.01ms !important;
   }
 }
+
+#exploreCategories input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: auto;
+  margin-right: 10px;
+  accent-color: #7567f8;
+}
   
 </style>
+
+  <link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
 </head>
 
 <body>
@@ -336,18 +348,29 @@ footer {
   <section id="explore" style="display:none;">
   <h2>Explore Nearby</h2>
   <p>Select places you want to discover within 5 km.</p>
+   <p>
+  Your location is optional. If you search, your coordinates are sent
+  to Rocky AI's server and OpenStreetMap Overpass to find nearby places.
+</p>
 
   <div id="exploreCategories" class="cards"></div>
 
-  <button type="button" onclick="getNearbyPlaces()">
-    Find places near me
-  </button>
+<button id="nearbySearchButton" type="button" onclick="getNearbyPlaces()">
+  Find places near me
+</button>
 
   <button type="button" onclick="closeExplore()">
     Back to Rocky AI
   </button>
 
-  <div id="exploreResults"></div>
+  <div
+  id="exploreMap"
+  role="region"
+  aria-label="Map showing your location and nearby places"
+  style="height:350px; width:100%; margin-top:20px; display:none;"
+></div>
+
+  <div id="exploreResults" role="status" aria-live="polite"></div>
 </section>
   
   <div id="chat" aria-live="polite"></div>
@@ -374,7 +397,12 @@ const API_BASE = "https://rocky-ai-api.anowbuth.workers.dev";
 
 const explore = document.getElementById("explore");
 const exploreResults = document.getElementById("exploreResults");
+const exploreMap = document.getElementById("exploreMap");
+  const nearbySearchButton = document.getElementById("nearbySearchButton");
 
+let nearbyMap = null;
+let nearbyMarkers = [];
+  
 const nearbyCategories = [
   "Restaurants",
   "Banks",
@@ -426,7 +454,68 @@ function closeExplore() {
   explore.style.display = "none";
   welcome.style.display = "";
   cards.style.display = "";
-}  
+
+  exploreResults.replaceChildren();
+  exploreMap.style.display = "none";
+  selectedCategories = [];
+}
+
+function makePopup(text) {
+  const popup = document.createElement("div");
+  popup.textContent = text;
+  return popup;
+}
+  
+function displayNearbyMap(latitude, longitude, places) {
+  exploreMap.style.display = "block";
+
+  if (!nearbyMap) {
+    nearbyMap = L.map("exploreMap").setView(
+      [latitude, longitude],
+      14
+    );
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>',
+      maxZoom: 19
+    }).addTo(nearbyMap);
+  } else {
+    nearbyMap.setView([latitude, longitude], 14);
+  }
+
+  nearbyMarkers.forEach(marker => nearbyMap.removeLayer(marker));
+  nearbyMarkers = [];
+ 
+  const userMarker = L.marker([latitude, longitude])
+    .addTo(nearbyMap)
+    .bindPopup(makePopup("Your location"));
+
+  nearbyMarkers.push(userMarker);
+
+  places.forEach(place => {
+    const marker = L.marker([
+      place.latitude,
+      place.longitude
+    ])
+      .addTo(nearbyMap)
+      .bindPopup(makePopup(
+  `${place.name} · ${place.category} · ${place.distanceKm} km`
+));
+
+    nearbyMarkers.push(marker);
+  });
+  const bounds = L.latLngBounds([
+  [latitude, longitude],
+  ...places.map(place => [place.latitude, place.longitude])
+]);
+
+nearbyMap.fitBounds(bounds, {
+  padding: [30, 30],
+  maxZoom: 15
+});
+
+  setTimeout(() => nearbyMap.invalidateSize(), 100);
+}
 
 async function getNearbyPlaces() {
   if (selectedCategories.length === 0) {
@@ -439,60 +528,78 @@ async function getNearbyPlaces() {
     return;
   }
 
+  if (nearbySearchButton.disabled) return;
+
+  const categories = [...selectedCategories];
+
+  nearbySearchButton.disabled = true;
+  nearbySearchButton.textContent = "Getting location...";
+  exploreResults.textContent = "Getting your location...";
+  exploreMap.style.display = "none";
+
   navigator.geolocation.getCurrentPosition(
     position => {
       const latitude = position.coords.latitude;
       const longitude = position.coords.longitude;
 
-exploreResults.textContent = "Searching for nearby places...";
+      nearbySearchButton.textContent = "Searching...";
+      exploreResults.textContent = "Searching for nearby places...";
 
-fetch(`${API_BASE}/api/nearby`, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    latitude,
-    longitude,
-    categories: selectedCategories
-  })
-})
-.then(response => response.json())
-.then(data => {
-  if (!data.places) {
-    exploreResults.textContent = data.error || "No results available.";
-    return;
-  }
+      fetch(`${API_BASE}/api/nearby`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          latitude,
+          longitude,
+          categories
+        })
+      })
+      .then(response => {
+        if (!response.ok) throw new Error("Nearby search failed.");
+        return response.json();
+      })
+      .then(data => {
+        if (!data.places) {
+          exploreResults.textContent =
+            data.error || "No results available.";
+          return;
+        }
 
-  if (data.places.length === 0) {
-    exploreResults.textContent = "No places found within 5 km.";
-    return;
-  }
+        if (data.places.length === 0) {
+          exploreResults.textContent = "No places found within 5 km.";
+          return;
+        }
 
-  const list = document.createElement("div");
+        displayNearbyMap(latitude, longitude, data.places);
 
-  data.places.forEach(place => {
-    const item = document.createElement("div");
-    item.className = "card";
-    item.textContent =
-      `${place.name} · ${place.category} · ${place.distanceKm} km`;
-    list.appendChild(item);
-  });
+        const list = document.createElement("div");
 
-  exploreResults.replaceChildren(list);
-})
-.catch(() => {
-  exploreResults.textContent = "Nearby search is temporarily unavailable.";
-});
+        data.places.forEach(place => {
+          const item = document.createElement("div");
+          item.className = "card";
+          item.textContent =
+            `${place.name} · ${place.category} · ${place.distanceKm} km`;
+          list.appendChild(item);
+        });
+
+        exploreResults.replaceChildren(list);
+      })
+      .catch(() => {
+        exploreResults.textContent =
+          "Nearby search is temporarily unavailable.";
+      })
+      .finally(() => {
+        nearbySearchButton.disabled = false;
+        nearbySearchButton.textContent = "Find places near me";
+      });
     },
     () => {
-      alert("Please allow location access to explore nearby places.");
+      nearbySearchButton.disabled = false;
+      nearbySearchButton.textContent = "Find places near me";
+      exploreResults.textContent =
+        "Location access was denied or unavailable.";
     },
-    {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 60000
-    }
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
   );
 }
   
@@ -582,6 +689,8 @@ function suggest(text) {
 function newChat() {
   if (requestInProgress) return;
 
+  closeExplore();
+
   conversation = [];
   failedMessage = null;
   chat.replaceChildren();
@@ -591,7 +700,7 @@ function newChat() {
 
   input.value = "";
 
-addMessage("New conversation ready. How can I help you?", "bot");
+  addMessage("New conversation ready. How can I help you?", "bot");
 
   if (chatEnabled) {
     input.focus();
@@ -745,6 +854,6 @@ failedMessage = null;
 
 checkAvailability();
 </script>
-
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </body>
 </html>
