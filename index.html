@@ -386,6 +386,7 @@ function showRetry(messageElement, text, message) {
   retryButton.addEventListener("click", () => {
     if (requestInProgress || !failedMessage) return;
 
+    retryButton.disabled = true;
     input.value = failedMessage;
     document.getElementById("form").requestSubmit();
   });
@@ -436,7 +437,13 @@ async function checkAvailability() {
       throw new Error("Health check failed");
     }
 
-    const data = await response.json();
+    let data = {};
+    
+    try {
+      data = await response.json();
+    } catch {
+      data = {};
+    }
 
     if (data.worker !== "online") {
       throw new Error("Worker unavailable");
