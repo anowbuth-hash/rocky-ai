@@ -19,17 +19,16 @@ body {
   color: #f5f6fa;
   font-family: Arial, sans-serif;
   min-height: 100vh;
-  display: flex;
-  justify-content: center;
 }
 
 .app {
   width: 100%;
   max-width: 760px;
-  padding: 22px;
+  margin: auto;
+  padding: 20px;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
 }
 
 header {
@@ -43,8 +42,8 @@ header {
   background: #7567f8;
   border-radius: 14px;
   padding: 12px;
-  font-weight: bold;
   font-size: 22px;
+  font-weight: bold;
 }
 
 h1 {
@@ -56,6 +55,16 @@ h1 {
   color: #9ba3b7;
   font-size: 12px;
   margin-top: 5px;
+}
+
+.header-actions {
+  margin-left: auto;
+}
+
+.new-chat {
+  background: #252b3c;
+  border: 1px solid #424a61;
+  padding: 10px 13px;
 }
 
 main {
@@ -70,7 +79,6 @@ main {
 
 .welcome h2 {
   font-size: 30px;
-  margin-bottom: 10px;
 }
 
 .welcome p {
@@ -146,6 +154,11 @@ main {
   align-self: flex-start;
 }
 
+.message.loading {
+  opacity: 0.75;
+  font-style: italic;
+}
+
 form {
   display: flex;
   gap: 10px;
@@ -199,9 +212,9 @@ footer {
   padding: 16px;
 }
 
-@media (max-width: 420px) {
+@media(max-width: 420px) {
   .app {
-    padding: 16px;
+    padding: 14px;
   }
 
   .welcome h2 {
@@ -214,6 +227,11 @@ footer {
 
   .card {
     padding: 12px;
+  }
+
+  .header-actions button {
+    padding: 9px;
+    font-size: 12px;
   }
 
   form {
@@ -232,11 +250,18 @@ footer {
 
 <header>
   <div class="logo" aria-hidden="true">R</div>
+
   <div>
     <h1>Rocky AI</h1>
     <div class="status" id="status" aria-live="polite">
       Checking availability...
     </div>
+  </div>
+
+  <div class="header-actions">
+    <button class="new-chat" id="newChat" type="button">
+      + New Chat
+    </button>
   </div>
 </header>
 
@@ -292,7 +317,7 @@ footer {
   <button id="send" type="submit" disabled>Send</button>
 </form>
 
-<footer>Rocky AI · Preview · Testing</footer>
+<footer>Rocky AI · Phase 2 · Preview Testing</footer>
 
 </div>
 
@@ -304,9 +329,12 @@ const input = document.getElementById("prompt");
 const send = document.getElementById("send");
 const status = document.getElementById("status");
 const availability = document.getElementById("availability");
+const welcome = document.getElementById("welcome");
 const cards = document.getElementById("cards");
 
 let chatEnabled = false;
+let conversation = [];
+let requestInProgress = false;
 
 function setChatEnabled(enabled) {
   chatEnabled = enabled;
@@ -330,23 +358,45 @@ function setChatEnabled(enabled) {
   }
 }
 
-function addMessage(text, type) {
+function addMessage(text, type, loading = false) {
   const div = document.createElement("div");
+
   div.className = "message " + type;
+
+  if (loading) {
+    div.classList.add("loading");
+  }
+
   div.textContent = text;
   chat.appendChild(div);
-
   div.scrollIntoView({ behavior: "smooth", block: "end" });
 
   return div;
 }
 
 function suggest(text) {
-  if (!chatEnabled) return;
+  if (!chatEnabled || requestInProgress) return;
 
   input.value = text;
   document.getElementById("form").requestSubmit();
 }
+
+function newChat() {
+  if (requestInProgress) return;
+
+  conversation = [];
+  chat.replaceChildren();
+
+  welcome.style.display = "";
+  cards.style.display = "";
+
+  if (chatEnabled) {
+    input.value = "";
+    input.focus();
+  }
+}
+
+document.getElementById("newChat").addEventListener("click", newChat);
 
 async function checkAvailability() {
   setChatEnabled(false);
@@ -382,17 +432,31 @@ async function checkAvailability() {
 document.getElementById("form").addEventListener("submit", async function(e) {
   e.preventDefault();
 
-  if (!chatEnabled) return;
+  if (!chatEnabled || requestInProgress) return;
 
   const text = input.value.trim();
 
   if (!text) return;
 
+  welcome.style.display = "none";
+  cards.style.display = "none";
+
+  conversation.push({
+    role: "user",
+    content: text
+  });
+
   addMessage(text, "user");
+
   input.value = "";
+  requestInProgress = true;
   send.disabled = true;
 
-  const loading = addMessage("Rocky is preparing a response...", "bot");
+  const loading = addMessage(
+    "Rocky is preparing a response...",
+    "bot",
+    true
+  );
 
   try {
     const response = await fetch(API_BASE + "/api/chat", {
@@ -401,27 +465,48 @@ document.getElementById("form").addEventListener("submit", async function(e) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        messages: [
-          { role: "user", content: text }
-        ]
+        messages: conversation
       })
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      loading.textContent = data.error || "Rocky is temporarily unavailable.";
+      conversation.pop();
+
+      loading.textContent =
+        data.error || "Rocky is temporarily unavailable.";
+
       return;
     }
 
-    loading.textContent =
-      data.reply || "Rocky did not return a response.";
+    if (typeof data.reply !== "string" || !data.reply.trim()) {
+      conversation.pop();
+
+      loading.textContent =
+        "Rocky returned an empty response. Please try again.";
+
+      return;
+    }
+
+    loading.classList.remove("loading");
+    loading.textContent = data.reply;
+
+    conversation.push({
+      role: "assistant",
+      content: data.reply
+    });
 
   } catch {
+    conversation.pop();
+
     loading.textContent =
       "Unable to reach Rocky's backend. Please try again.";
+
   } finally {
+    requestInProgress = false;
     send.disabled = !chatEnabled;
+    input.focus();
   }
 });
 
