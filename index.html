@@ -392,6 +392,7 @@ const nearbyCategories = [
 let selectedCategories = [];
 
 function openExplore() {
+  selectedCategories = [];
   welcome.style.display = "none";
   cards.style.display = "none";
   explore.style.display = "block";
@@ -443,8 +444,46 @@ async function getNearbyPlaces() {
       const latitude = position.coords.latitude;
       const longitude = position.coords.longitude;
 
-      exploreResults.textContent =
-        `Location received. Latitude: ${latitude.toFixed(4)}, Longitude: ${longitude.toFixed(4)}.`;
+exploreResults.textContent = "Searching for nearby places...";
+
+fetch(`${API_BASE}/api/nearby`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    latitude,
+    longitude,
+    categories: selectedCategories
+  })
+})
+.then(response => response.json())
+.then(data => {
+  if (!data.places) {
+    exploreResults.textContent = data.error || "No results available.";
+    return;
+  }
+
+  if (data.places.length === 0) {
+    exploreResults.textContent = "No places found within 5 km.";
+    return;
+  }
+
+  const list = document.createElement("div");
+
+  data.places.forEach(place => {
+    const item = document.createElement("div");
+    item.className = "card";
+    item.textContent =
+      `${place.name} · ${place.category} · ${place.distanceKm} km`;
+    list.appendChild(item);
+  });
+
+  exploreResults.replaceChildren(list);
+})
+.catch(() => {
+  exploreResults.textContent = "Nearby search is temporarily unavailable.";
+});
     },
     () => {
       alert("Please allow location access to explore nearby places.");
