@@ -390,8 +390,11 @@ function newChat() {
   welcome.style.display = "";
   cards.style.display = "";
 
+  input.value = "";
+
+  addMessage("New conversation ready. Chat is currently in testing mode.", "bot");
+
   if (chatEnabled) {
-    input.value = "";
     input.focus();
   }
 }
