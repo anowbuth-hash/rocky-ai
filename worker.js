@@ -1,6 +1,6 @@
 
 const ALLOWED_ORIGIN = "https://anowbuth-hash.github.io";
-const MODEL = "@cf/meta/llama-3.2-11b-vision-instruct";
+const MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 
 function json(data, status, origin) {
   return new Response(JSON.stringify(data), {
